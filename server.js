@@ -55,5 +55,7 @@ app.get('/health', (req, res) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+console.log('Running');
+
 // ✅ Export app for Vercel (no app.listen)
 module.exports = app;

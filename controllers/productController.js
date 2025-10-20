@@ -89,10 +89,22 @@ const createProduct = async (req, res, next) => {
   try {
     const productData = req.body;
     
+    // Parse shades if it's a JSON string
+    if (productData.shades && typeof productData.shades === 'string') {
+      try {
+        productData.shades = JSON.parse(productData.shades);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid shades format'
+        });
+      }
+    }
+    
     // Handle image uploads
     if (req.files && req.files.length > 0) {
-      // Limit to maximum 3 images
-      const limitedFiles = req.files.slice(0, 3);
+      // Limit to maximum 6 images
+      const limitedFiles = req.files.slice(0, 6);
       const images = limitedFiles.map(file => ({
         public_id: file.filename || file.public_id,
         url: file.path || file.secure_url || file.url
@@ -131,11 +143,23 @@ const updateProduct = async (req, res, next) => {
     }
 
     const updateData = req.body;
+    
+    // Parse shades if it's a JSON string
+    if (updateData.shades && typeof updateData.shades === 'string') {
+      try {
+        updateData.shades = JSON.parse(updateData.shades);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid shades format'
+        });
+      }
+    }
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
-      // Limit to maximum 3 images
-      const limitedFiles = req.files.slice(0, 3);
+      // Limit to maximum 6 images
+      const limitedFiles = req.files.slice(0, 6);
       
       // Delete old images from cloudinary if replacing
       if (req.body.replaceImages === 'true' && product.images.length > 0) {
@@ -151,13 +175,13 @@ const updateProduct = async (req, res, next) => {
           url: file.path || file.secure_url || file.url
         }));
       } else {
-        // Add new images to existing ones, but respect 3-image limit
+        // Add new images to existing ones, but respect 6-image limit
         const newImages = limitedFiles.map(file => ({
           public_id: file.filename || file.public_id,
           url: file.path || file.secure_url || file.url
         }));
         const combinedImages = [...product.images, ...newImages];
-        updateData.images = combinedImages.slice(0, 3); // Ensure max 3 images
+        updateData.images = combinedImages.slice(0, 6); // Ensure max 6 images
       }
     }
 

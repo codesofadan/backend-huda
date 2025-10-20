@@ -24,7 +24,7 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Product category is required'],
-    enum: ['nails', 'brushes', 'hudamoji', 'mix brands']
+    enum: ['nails', 'hudamoji', 'mix brands']
   },
   images: {
     type: [{
@@ -39,9 +39,9 @@ const productSchema = new mongoose.Schema({
     }],
     validate: {
       validator: function(v) {
-        return v.length >= 1 && v.length <= 3;
+        return v.length >= 1 && v.length <= 6;
       },
-      message: 'Product must have between 1 and 3 images'
+      message: 'Product must have between 1 and 6 images'
     }
   },
   stock: {
@@ -50,6 +50,18 @@ const productSchema = new mongoose.Schema({
     min: [0, 'Stock cannot be negative'],
     default: 0
   },
+  shades: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    code: {
+      type: String,
+      required: true,
+      trim: true
+    }
+  }],
   featured: {
     type: Boolean,
     default: false
