@@ -19,7 +19,7 @@ const orderSchema = new mongoose.Schema({
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: false,
       lowercase: true,
       trim: true
     },
@@ -65,7 +65,11 @@ const orderSchema = new mongoose.Schema({
       required: true,
       min: 1
     },
-    image: String
+    image: String,
+    selectedShade: {
+      name: String,
+      code: String
+    }
   }],
   subtotal: {
     type: Number,
@@ -85,7 +89,7 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'confirmed', 'ready', 'dispatched', 'delivered', 'cancelled'],
     default: 'pending'
   },
   paymentMethod: {
