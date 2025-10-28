@@ -18,8 +18,37 @@ const createOrder = async (req, res, next) => {
       notes
     } = req.body;
 
+    // Validate required fields
+    if (!customerInfo || !customerInfo.firstName || !customerInfo.lastName || !customerInfo.phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer information is incomplete'
+      });
+    }
+
+    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zipCode) {
+      return res.status(400).json({
+        success: false,
+        error: 'Shipping address is incomplete'
+      });
+    }
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order must contain at least one item'
+      });
+    }
+
     // Validate products and stock
     for (const item of items) {
+      if (!item.product) {
+        return res.status(400).json({
+          success: false,
+          error: `Product ID is missing for item: ${item.name || 'Unknown'}`
+        });
+      }
+
       const product = await Product.findById(item.product);
       if (!product) {
         return res.status(400).json({
