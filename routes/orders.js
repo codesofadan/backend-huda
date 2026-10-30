@@ -6,13 +6,14 @@ const {
   getOrder,
   updateOrderStatus
 } = require('../controllers/orderController');
+const { requireAdmin } = require('../middleware/auth');
 
-// Public routes
+// Public routes (reading an order back needs its access token, or an admin login)
 router.post('/', createOrder);
 router.get('/:id', getOrder);
 
-// Admin routes (in production, add authentication middleware)
-router.get('/', getOrders);
-router.put('/:id/status', updateOrderStatus);
+// Admin routes
+router.get('/', requireAdmin, getOrders);
+router.put('/:id/status', requireAdmin, updateOrderStatus);
 
 module.exports = router;

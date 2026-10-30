@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
+const { requireAdmin } = require('../middleware/auth');
 const {
   getProducts,
   getProduct,
@@ -15,9 +16,9 @@ router.get('/', getProducts);
 router.get('/categories', getCategories);
 router.get('/:id', getProduct);
 
-// Admin routes (in production, add authentication middleware)
-router.post('/', upload.array('images', 6), createProduct);
-router.put('/:id', upload.array('images', 6), updateProduct);
-router.delete('/:id', deleteProduct);
+// Admin routes
+router.post('/', requireAdmin, upload.array('images', 6), createProduct);
+router.put('/:id', requireAdmin, upload.array('images', 6), updateProduct);
+router.delete('/:id', requireAdmin, deleteProduct);
 
 module.exports = router;

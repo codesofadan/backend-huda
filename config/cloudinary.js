@@ -13,19 +13,15 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'hudamoji-products',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [
-      { width: 800, height: 800, crop: 'limit' },
-      { quality: 'auto:low' }, // Lower quality for smaller file size
-      { fetch_format: 'auto' },
-      { flags: 'progressive' }
-    ]
+    // The admin panel already compresses in the browser; this only caps the dimensions.
+    transformation: [{ width: 1600, height: 1600, crop: 'limit' }]
   },
 });
 
 const upload = multer({ 
   storage,
   limits: {
-    fileSize: 200 * 1024, // 200KB limit
+    fileSize: 1024 * 1024, // 1MB per image; the browser sends ~350KB
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {

@@ -1,5 +1,15 @@
 const Product = require('../models/Product');
 const { cloudinary } = require('../config/cloudinary');
+const { escapeRegex } = require('../utils/helpers');
+
+const toImage = (file) => ({
+  public_id: file.filename || file.public_id,
+  url: file.path || file.secure_url || file.url
+});
+
+const destroyImages = (images) => Promise.all(images.map(img =>
+  cloudinary.uploader.destroy(img.public_id).catch(err => console.error('Error deleting image:', err))
+));
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -12,12 +22,20 @@ const getProducts = async (req, res, next) => {
       category, 
       featured, 
       search,
+      status,
+      stock,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
 
-    // Build query
-    let query = { status: 'active' };
+    // Build query. The store only sees active products; the admin list (req.adminList) sees all.
+    let query = req.adminList ? {} : { status: 'active' };
+    if (req.adminList && status && status !== 'all') {
+      query.status = status;
+    }
+    if (req.adminList && stock === 'low') {
+      query.stock = { $lte: 5 };
+    }
     
     if (category && category !== 'all') {
       query.category = category;
@@ -28,7 +46,11 @@ const getProducts = async (req, res, next) => {
     }
     
     if (search) {
-      query.$text = { $search: search };
+      if (req.adminList) {
+        query.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
+      } else {
+        query.$text = { $search: search };
+      }
     }
 
     // Build sort object
@@ -104,12 +126,7 @@ const createProduct = async (req, res, next) => {
     // Handle image uploads
     if (req.files && req.files.length > 0) {
       // Limit to maximum 6 images
-      const limitedFiles = req.files.slice(0, 6);
-      const images = limitedFiles.map(file => ({
-        public_id: file.filename || file.public_id,
-        url: file.path || file.secure_url || file.url
-      }));
-      productData.images = images;
+      productData.images = req.files.slice(0, 6).map(toImage);
     } else {
       return res.status(400).json({
         success: false,
@@ -156,39 +173,36 @@ const updateProduct = async (req, res, next) => {
       }
     }
 
-    // Handle new image uploads
-    if (req.files && req.files.length > 0) {
-      // Limit to maximum 6 images
-      const limitedFiles = req.files.slice(0, 6);
-      
-      // Delete old images from cloudinary if replacing
-      if (req.body.replaceImages === 'true' && product.images.length > 0) {
-        for (const image of product.images) {
-          try {
-            await cloudinary.uploader.destroy(image.public_id);
-          } catch (err) {
-            console.error('Error deleting image:', err);
-          }
+    // Images: `existingImages` is the JSON list of public_ids to keep, uploaded files are added after them.
+    let removed = [];
+    const newImages = (req.files || []).map(toImage);
+    if (updateData.existingImages !== undefined || newImages.length > 0) {
+      let kept = product.images;
+      if (updateData.existingImages !== undefined) {
+        let keepIds;
+        try {
+          keepIds = JSON.parse(updateData.existingImages);
+        } catch (e) {
+          return res.status(400).json({ success: false, error: 'Invalid existingImages format' });
         }
-        updateData.images = limitedFiles.map(file => ({
-          public_id: file.filename || file.public_id,
-          url: file.path || file.secure_url || file.url
-        }));
-      } else {
-        // Add new images to existing ones, but respect 6-image limit
-        const newImages = limitedFiles.map(file => ({
-          public_id: file.filename || file.public_id,
-          url: file.path || file.secure_url || file.url
-        }));
-        const combinedImages = [...product.images, ...newImages];
-        updateData.images = combinedImages.slice(0, 6); // Ensure max 6 images
+        kept = product.images.filter(img => keepIds.includes(img.public_id));
+        removed = product.images.filter(img => !keepIds.includes(img.public_id));
       }
+      const images = [...kept, ...newImages].slice(0, 6);
+      if (images.length === 0) {
+        return res.status(400).json({ success: false, error: 'Product needs at least one image' });
+      }
+      updateData.images = images;
     }
+    delete updateData.existingImages;
 
     product = await Product.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     });
+
+    // Only after the DB update succeeded, so a failed save never loses images.
+    await destroyImages(removed);
 
     res.json({
       success: true,
@@ -214,15 +228,7 @@ const deleteProduct = async (req, res, next) => {
     }
 
     // Delete images from cloudinary
-    if (product.images.length > 0) {
-      for (const image of product.images) {
-        try {
-          await cloudinary.uploader.destroy(image.public_id);
-        } catch (err) {
-          console.error('Error deleting image:', err);
-        }
-      }
-    }
+    await destroyImages(product.images);
 
     await Product.findByIdAndDelete(req.params.id);
 

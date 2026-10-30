@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const orderSchema = new mongoose.Schema({
   orderNumber: {
@@ -105,6 +106,12 @@ const orderSchema = new mongoose.Schema({
   notes: {
     type: String,
     maxlength: 500
+  },
+  // Secret handed only to the shopper who placed the order; it unlocks the public order page.
+  accessToken: {
+    type: String,
+    select: false,
+    default: () => crypto.randomBytes(16).toString('hex')
   }
 }, {
   timestamps: true

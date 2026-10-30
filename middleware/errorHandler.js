@@ -25,7 +25,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Multer file upload errors
   if (err.code === 'LIMIT_FILE_SIZE') {
-    const message = 'File size too large. Maximum size is 200KB';
+    const message = 'Image is too large (max 1MB). Please try a different photo.';
     error = { message, statusCode: 400 };
   }
 
