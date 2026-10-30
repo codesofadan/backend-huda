@@ -54,7 +54,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.get('/health', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'Hudamoji API is running!',
+    message: 'Hudamoji is running!',
     timestamp: new Date().toISOString()
   });
 });
